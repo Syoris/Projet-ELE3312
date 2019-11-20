@@ -10,6 +10,7 @@
 "projet1\stm32f4xx_it.o"
 "projet1\stm32f4xx_hal_msp.o"
 "projet1\lcd_controle.o"
+"projet1\spectrogram.o"
 "projet1\stm32f4xx_hal_adc.o"
 "projet1\stm32f4xx_hal_adc_ex.o"
 "projet1\stm32f4xx_hal_tim.o"

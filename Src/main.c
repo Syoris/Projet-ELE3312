@@ -25,6 +25,8 @@
 #include "tim.h"
 #include "usart.h"
 #include "gpio.h"
+#include "LCD_Controle.h"
+#include "spectrogram.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
@@ -88,6 +90,7 @@ volatile int adc_done = 0;  //Lecture de l'adc
 float angle = 0;	//Angle de la personne
 float distance = 0.0;
 
+// Mels Variables
 
 /* USER CODE END PV */
 
@@ -118,7 +121,7 @@ float findAngle(float max_index) {
 	float r = distance;
 	float y = sqrt((pow(r,2) - pow(a,2))/(1+(pow(a,2)/(pow(C,2)-pow(a,2)))));
 	float x = sqrt(pow(r,2)-pow(y,2));
-	float angle = atan(y/x)*180.0f/PI;
+	float angle = atanf(y/x)*180.0f/PI;
 	
 	if (max_index < 159) return angle;
 	else return (180.0f-angle);
@@ -203,7 +206,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    /* USER CODE END WHILE */
+    
+		// To update LCD
 		if (flag_update_lcd == 1) {
 			distance = pulse_width/58.0f;
 			LCD_setCursor(0,0);
@@ -213,19 +217,36 @@ int main(void)
 			LCD_printf(buf);
 			flag_update_lcd = 0;
 		}
+		//
+		
+		// Once ADC is done
 		if (adc_done == 1) {
+			// Convert the output
 			convIntFloat(input_tab_left_inv, input_tab_left_f);
 			convIntFloat(input_tab_right_inv, input_tab_right_f);
 			
+			// Remove the average
 			normalize(input_tab_left_f);
 			normalize(input_tab_right_f);
+			
+			// Calcul de la corrélation
 			arm_correlate_f32(input_tab_left_f, TABLE_LENGTH, input_tab_right_f, TABLE_LENGTH, correlate_tab);
+			
+			// Find index of maximum
 			float d = maxDisplace(correlate_tab);
+			
+			// Compute angle
 			angle = findAngle(d);
+			
+			// Find Mel Coefficients
+			float new_coeffs[40];
 			
 			adc_done = 0;
 		}
-    /* USER CODE BEGIN 3 */
+		//
+		
+	/* USER CODE END WHILE */
+	/* USER CODE BEGIN 3 */
   }
   /* USER CODE END 3 */
 }
@@ -275,6 +296,7 @@ void SystemClock_Config(void)
 }
 
 /* USER CODE BEGIN 4 */
+
 /**  * @brief Retargets the C library printf function to the USART.  
 * @param None  
 * @retval None  */ 
@@ -284,15 +306,19 @@ PUTCHAR_PROTOTYPE {
 	HAL_UART_Transmit(&huart2, (uint8_t *)&ch, 1, 0xFFFF); 
 	return ch; 
 }
+//
 
+// Pour update LCD à la bonne fréquence
 void HAL_SYSTICK_Callback() {
-	if (local_time == 500) {
+	if (local_time >= 500) {
 		local_time = 0;
 		flag_update_lcd = 1;
 	}
 	local_time++;
 }
+//
 
+// Quand la capture du ECHO est finie
 void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 	if (htim->Instance == TIM8) {
 		int current_captured = HAL_TIM_ReadCapturedValue(htim, TIM_CHANNEL_3);
@@ -307,7 +333,9 @@ void HAL_TIM_IC_CaptureCallback(TIM_HandleTypeDef *htim) {
 		last_captured = temp_captured;	
 	}
 }
+//
 
+// Quand la lecture des ADC est finie
 void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 	if (hadc == &hadc1) {
 		if (input_tab_left == tab_left_1) {
@@ -334,6 +362,7 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 		adc_done = 1;
 	}
 }
+//
 
 /* USER CODE END 4 */
 

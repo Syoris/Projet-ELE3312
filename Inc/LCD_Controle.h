@@ -4,9 +4,15 @@
 #include "MCUFRIEND_kbv.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <math.h>
 
-#define PI 3.14159265359f
+#ifndef ARM_MATH_CM4
+#define ARM_MATH_CM4
+#include "arm_math.h"
+#include "arm_const_structs.h"
+#endif 
+
+//#include <math.h>
+//#define PI 3.14159265359f
 
 struct LCD_Data{
 	char mot[80];
