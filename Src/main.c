@@ -59,6 +59,9 @@
 /* USER CODE BEGIN PV */
 #define TABLE_LENGTH 160
 #define C 15
+#define MIN_MEL 7
+#define MAX_MEL 12
+#define VOICE_LEVEL 9.5
 
 // Lecture du senseur ultrasonique
 volatile unsigned int pulse_width = 0;
@@ -67,6 +70,7 @@ volatile unsigned int signal_polarity = 0;
 
 // Affichage de l'écran
 volatile int local_time = 0;
+volatile int local_time_spectre = 0;
 volatile int flag_update_lcd = 0;
 
 //Tableau des données en entrée
@@ -85,11 +89,18 @@ float input_tab_right_f[TABLE_LENGTH];
 float correlate_tab[(2*TABLE_LENGTH) - 1];	//Tableau des valeurs correlées
 
 volatile int adc_done = 0;  //Lecture de l'adc
+volatile int flag_voice = 0; //Detection de la voix
+volatile int update_spectre = 0; //Dessin du spectre
 
 // Valeurs déterminées
 float angle = 0;	//Angle de la personne
+float prev_angle = 0;
 float distance = 0.0;
+struct LCD_Data dataLCD;
 
+float mel_values[N_MEL];
+int hor_spectre_pos = 20;
+int vert_spectre_pos = 319;
 // Mels Variables
 
 /* USER CODE END PV */
@@ -156,6 +167,40 @@ void normalize(float* input_float) {
 }
 //
 
+// Dessiner une ligne de test
+void drawAngle() {
+	LCD_drawLine(120, 100, 120 + 60*cos(prev_angle*PI/180), 100 + 60*sin(prev_angle*PI/180), BLACK);
+	LCD_drawLine(120, 100, 120 + 60*cos(angle*PI/180), 100 + 60*sin(angle*PI/180), WHITE);
+}
+//
+
+// Dessiner le spectrogramme de test
+void drawSpectre() {
+	int pas = (MAX_MEL-MIN_MEL)/4;
+	for (int i = 0; i < N_MEL; i++) {
+		uint16_t color = BLACK;
+		if (mel_values[i] < (MIN_MEL+pas)) color = BLACK;
+		else if (mel_values[i] < (MIN_MEL+2*pas) && mel_values[i] >= (MIN_MEL+pas)) color = BLUE;
+		else if (mel_values[i] < (MIN_MEL+3*pas) && mel_values[i] >= (MIN_MEL+2*pas)) color = YELLOW;
+		else color = RED;
+		LCD_fillRect(hor_spectre_pos, (vert_spectre_pos - 2*i),2,2, color);
+		//LCD_drawPixel(hor_spectre_pos, (vert_spectre_pos - i), color);
+	}
+	
+	hor_spectre_pos += 2;
+	if (hor_spectre_pos == 220) { 
+		hor_spectre_pos = 20;
+		LCD_fillRect(20, (vert_spectre_pos - 79), 200, 80, BLACK);
+	}
+}
+
+void detectVoice(void) {
+	float average;
+	arm_mean_f32(mel_values, N_MEL, &average);
+	if (average >= VOICE_LEVEL) flag_voice = 1;
+	else flag_voice = 0;
+}
+
 int main(void)
 {
   /* USER CODE BEGIN 1 */
@@ -189,10 +234,7 @@ int main(void)
   MX_ADC2_Init();
   MX_TIM2_Init();
   /* USER CODE BEGIN 2 */
-	LCD_Begin();
-	HAL_Delay(20);
-	LCD_SetRotation(0);
-	LCD_FillScreen(BLACK);
+	init_screen();
 	
 	HAL_TIM_PWM_Start(&htim4, TIM_CHANNEL_1);
 	HAL_TIM_IC_Start_IT(&htim8, TIM_CHANNEL_3);
@@ -209,13 +251,23 @@ int main(void)
     
 		// To update LCD
 		if (flag_update_lcd == 1) {
-			distance = pulse_width/58.0f;
-			LCD_setCursor(0,0);
-			char buf[80];
-			sprintf(buf, "%4.2f\r\n %4.2f\r\n", distance, angle);
-			printf(buf);
-			LCD_printf(buf);
+			if (flag_voice == 1) {
+				distance = pulse_width/58.0;
+				LCD_setCursor(0,0);
+				char buf[80];
+				sprintf(buf, "%4.2f\r\n %4.2f\r\n", distance, angle);
+				//printf(buf);
+				LCD_printf(buf);
+				drawAngle();
+				prev_angle = angle;
+			}
 			flag_update_lcd = 0;
+		}
+		
+		if (update_spectre == 1) {
+			drawSpectre();
+			detectVoice();
+			update_spectre = 0;
 		}
 		//
 		
@@ -239,7 +291,7 @@ int main(void)
 			angle = findAngle(d);
 			
 			// Find Mel Coefficients
-			float new_coeffs[40];
+			compute_log_mel_coefficients(input_tab_left_f, mel_values);
 			
 			adc_done = 0;
 		}
@@ -310,11 +362,16 @@ PUTCHAR_PROTOTYPE {
 
 // Pour update LCD à la bonne fréquence
 void HAL_SYSTICK_Callback() {
-	if (local_time >= 500) {
+	if (local_time >= 100) {
 		local_time = 0;
 		flag_update_lcd = 1;
 	}
+	if (local_time_spectre >= 100) {
+		update_spectre = 1;
+		local_time_spectre = 0;
+	}
 	local_time++;
+	local_time_spectre++;
 }
 //
 

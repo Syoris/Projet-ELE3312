@@ -5,10 +5,10 @@
 <h2>Tool Versions:</h2>
 IDE-Version: µVision V5.28.0.0
 Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
-License Information: Charles Sirois, Polytechnique, LIC=Z3CQD-8MVTX-EXGUX-HNT24-HGE93-9Z7MQ
+License Information: Gabriel Berestovoy Polytechnique Montréal Flex license: MDK Professional 5.28 (Flex) (mdk_pro) Operation stops: 18 Feb 2020
  
 Tool Versions:
-Toolchain:       MDK-ARM Professional  Version: 5.28.0.0
+Toolchain:       MDK Professional 5.28 (Flex)  Version: 5.28.0.0
 Toolchain Path:  C:\Keil_v5\ARM\ARMCC\Bin
 C Compiler:      Armcc.exe V5.06 update 6 (build 750)
 Assembler:       Armasm.exe V5.06 update 6 (build 750)
@@ -21,22 +21,33 @@ Target DLL:      STLink\ST-LINKIII-KEIL_SWO.dll V3.0.6.0
 Dialog DLL:      TCM.DLL V1.36.2.0
  
 <h2>Project:</h2>
-D:\charl\Documents\Git\Projet-ELE3312\MDK-ARM\Projet1.uvprojx
+C:\Users\Gabriel\Desktop\Projet\Projet-ELE3312\MDK-ARM\Projet1.uvprojx
 Project File Date:  11/20/2019
 
 <h2>Output:</h2>
 *** Using Compiler 'V5.06 update 6 (build 750)', folder: 'C:\Keil_v5\ARM\ARMCC\Bin'
 Build target 'Projet1'
-"Projet1\Projet1.axf" - 0 Error(s), 0 Warning(s).
+compiling main.c...
+../Inc/arm_math.h(645): warning:  #47-D: incompatible redefinition of macro "__PKHBT"  (declared at line 852 of "../Drivers/CMSIS/Include/cmsis_armcc.h")
+    #define __PKHBT(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0x0000FFFF) | \
+../Inc/arm_math.h(647): warning:  #47-D: incompatible redefinition of macro "__PKHTB"  (declared at line 855 of "../Drivers/CMSIS/Include/cmsis_armcc.h")
+    #define __PKHTB(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0xFFFF0000) | \
+../Src/main.c(200): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  	if (average >= VOICE_LEVEL) flag_voice = 1;
+../Src/main.c: 3 warnings, 0 errors
+linking...
+Program Size: Code=38008 RO-data=89488 RW-data=140 ZI-data=14188  
+FromELF: creating hex file...
+"Projet1\Projet1.axf" - 0 Error(s), 3 Warning(s).
 
 <h2>Software Packages used:</h2>
 
 Package Vendor: ARM
-                http://www.keil.com/pack/ARM.CMSIS.5.6.0.pack
-                ARM.CMSIS.5.6.0
+                http://www.keil.com/pack/ARM.CMSIS.5.5.1.pack
+                ARM.CMSIS.5.5.1
                 CMSIS (Cortex Microcontroller Software Interface Standard)
-   * Component: CORE Version: 5.3.0
-   * Component: DSP Variant: Library Version: 1.7.0
+   * Component: CORE Version: 5.2.0
+   * Component: DSP Variant: Library Version: 1.6.0
 
 Package Vendor: Keil
                 http://www.keil.com/pack/Keil.STM32F4xx_DFP.2.14.0.pack
@@ -45,18 +56,18 @@ Package Vendor: Keil
 
 <h2>Collection of Component include folders:</h2>
   .\RTE\_Projet1
-  D:\Programs\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\Core\Include
-  D:\Programs\Arm\Packs\ARM\CMSIS\5.6.0\CMSIS\DSP\Include
-  D:\Programs\Arm\Packs\Keil\STM32F4xx_DFP\2.14.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include
+  C:\Users\Gabriel\AppData\Local\Arm\Packs\ARM\CMSIS\5.5.1\CMSIS\Core\Include
+  C:\Users\Gabriel\AppData\Local\Arm\Packs\ARM\CMSIS\5.5.1\CMSIS\DSP\Include
+  C:\Users\Gabriel\AppData\Local\Arm\Packs\Keil\STM32F4xx_DFP\2.14.0\Drivers\CMSIS\Device\ST\STM32F4xx\Include
 
 <h2>Collection of Component Files used:</h2>
 
-   * Component: ARM::CMSIS:CORE:5.3.0
+   * Component: ARM::CMSIS:CORE:5.2.0
 
-   * Component: ARM::CMSIS:DSP:Library:1.7.0
+   * Component: ARM::CMSIS:DSP:Library:1.6.0
       Include file:  CMSIS\DSP\Include\arm_math.h
       Library file:  CMSIS\DSP\Lib\ARM\arm_cortexM4lf_math.lib
-Build Time Elapsed:  00:00:02
+Build Time Elapsed:  00:00:04
 </pre>
 </body>
 </html>
