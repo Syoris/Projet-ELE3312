@@ -65,10 +65,7 @@
 #define LEVEL_4 10
 #define VOICE_LEVEL 7.5
 
-#define HIGH 3
-#define HIGH_MID 2
-#define LOW_MID 1
-#define LOW 0
+
 
 // Lecture du senseur ultrasonique
 volatile unsigned int pulse_width = 0;
@@ -112,8 +109,12 @@ struct LCD_Data dataLCD;
 float mel_values[N_MEL];
 int hor_spectre_pos = 20;
 int vert_spectre_pos = 319;
-float frequency_analysis[3];
+float frequency_analysis[5];
 
+char mot[80] = {0};
+float six[5] = {116, 101, 70, 86, 122};
+float un[5] = {118, 116, 104, 76, 83};
+float loup[5] = {200,114,33,46,64};
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -199,6 +200,7 @@ void drawSpectre() {
 	
 	hor_spectre_pos += 2;
 	if (hor_spectre_pos == 220) { 
+		//HAL_Delay(500);
 		hor_spectre_pos = 20;
 		LCD_fillRect(20, (vert_spectre_pos - 79), 200, 80, BLACK);
 	}
@@ -208,23 +210,88 @@ void detectVoice(void) {
 	float average;
 	arm_mean_f32(mel_values, N_MEL, &average);
 	if (average >= VOICE_LEVEL && begin_word == 0) {begin_word = 1; end_count = -1;}
-	else if (average < VOICE_LEVEL && begin_word == 1) {end_count = 200; begin_word = 0;}
+	else if (average < VOICE_LEVEL && begin_word == 1) {end_count = 100; begin_word = 0;}
 }
 
 void analyzeFrequencies(void) {
 	float temp;
-	for (int i = 0; i < 4; i++) {
-		for (int j = 0; j < 10; j++) {
-			temp += mel_values[j + i*10];
+	for (int i = 0; i < 5; i++) {
+		for (int j = 0; j < 8; j++) {
+			if (mel_values[j+i*8] > VOICE_LEVEL) temp += mel_values[j + i*8];
 		}
-		temp /= 10;
+		temp /= 8;
 		frequency_analysis[i] += temp;
 	}
 }
 
-void wordAnalysis(void) {
-	
+int compareWordFreq(float* mot, float* resultat, float sensibilite) {
+	int compare_resultat = 0;
+	for (int i = 0; i < 5; i++) {
+		if ((resultat[i] < (mot[i]*(1+sensibilite)) && (resultat[i] > (mot[i]*(1-sensibilite))))) compare_resultat++;
+	}
+	if (compare_resultat == 5) return 1;
+	else return 0;
 }
+
+int compareWord(float* resultat) {
+	float erreur_un = 0;
+	for (int i = 0; i < 5; i++) {
+		erreur_un += (abs((int) (resultat[i] - un[i]))/un[i]);
+	}
+	erreur_un /= 5;
+	printf("%4.2f\r\n", erreur_un);
+	
+	float erreur_six = 0;
+	for (int i = 0; i < 5; i++) {
+		erreur_six += (abs((int) (resultat[i] - six[i]))/six[i]);
+	}
+	erreur_six /= 5;
+	printf("%4.2f\r\n", erreur_six);
+	
+	float erreur_loup = 0;
+	for (int i = 0; i < 5; i++) {
+		erreur_loup += (abs((int) (resultat[i] - loup[i]))/loup[i]);
+	}
+	erreur_loup /= 5;
+	printf("%4.2f\r\n", erreur_loup);
+	
+	float erreur[3] = {erreur_un, erreur_six, erreur_loup};
+	float min_value;
+	uint32_t min_index;
+	arm_min_f32(erreur, 3, &min_value, &min_index);
+	return min_index;
+}
+
+void wordAnalysis(void) {
+	float total = 0;
+	for (int i = 0; i < 5; i++) { total += frequency_analysis[i]; }
+	total /= 5;
+	
+	for (int i = 4; i >= 0; i--) {
+		frequency_analysis[i] = (int) frequency_analysis[i]/total*100;
+		char buf[80]; 
+		sprintf(buf, "%i:%i\r\n", i, (int) frequency_analysis[i]); 
+		printf(buf);
+	}
+	
+	sprintf(mot, "rip");
+//	if (compareWordFreq(loup, frequency_analysis, 0.4) == 1) sprintf(mot, "loup");
+//	else if (compareWordFreq(un, frequency_analysis, 0.4) == 1) sprintf(mot, "un");
+//	else if (compareWordFreq(six, frequency_analysis, 0.4) == 1) sprintf(mot, "six");
+	int min_index = compareWord(frequency_analysis);
+	printf("%i\r\n", min_index);
+	if (min_index == 0) sprintf(mot, "un");
+	else if (min_index == 1) sprintf(mot, "six");
+	else if (min_index == 2) sprintf(mot, "loup");
+	printf(mot);
+	printf("\r\n\r\n");
+	
+	for (int i = 4; i >= 0; i--) {
+		frequency_analysis[i] = 0;
+	}
+}
+
+
 
 int main(void)
 {
@@ -282,7 +349,7 @@ int main(void)
 				sprintf(buf, "%yes\r\n");
 				LCD_printf(buf);
 				end_word = 0;
-				HAL_Delay(3000);
+				HAL_Delay(1000);
 		}
 		
 		if (flag_update_lcd == 1 && end_count == -1) {
@@ -301,6 +368,7 @@ int main(void)
 		if (update_spectre == 1) {
 			drawSpectre();
 			detectVoice();
+			if (begin_word == 1 || end_count != -1) analyzeFrequencies();
 			update_spectre = 0;
 		}
 		//
