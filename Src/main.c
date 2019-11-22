@@ -59,9 +59,16 @@
 /* USER CODE BEGIN PV */
 #define TABLE_LENGTH 160
 #define C 15
-#define MIN_MEL 7
-#define MAX_MEL 12
-#define VOICE_LEVEL 9.5
+#define LEVEL_1 7
+#define LEVEL_2 8
+#define LEVEL_3 9
+#define LEVEL_4 10
+#define VOICE_LEVEL 7.5
+
+#define HIGH 3
+#define HIGH_MID 2
+#define LOW_MID 1
+#define LOW 0
 
 // Lecture du senseur ultrasonique
 volatile unsigned int pulse_width = 0;
@@ -88,8 +95,11 @@ float input_tab_left_f[TABLE_LENGTH];
 float input_tab_right_f[TABLE_LENGTH];
 float correlate_tab[(2*TABLE_LENGTH) - 1];	//Tableau des valeurs correlées
 
-volatile int adc_done = 0;  //Lecture de l'adc
-volatile int flag_voice = 0; //Detection de la voix
+volatile int adc_done_left = 0;  //Lecture de l'adc
+volatile int adc_done_right = 0;
+volatile int begin_word = 0; //Detection de la voix
+volatile int end_word = 0;
+volatile int end_count = -1;
 volatile int update_spectre = 0; //Dessin du spectre
 
 // Valeurs déterminées
@@ -98,10 +108,11 @@ float prev_angle = 0;
 float distance = 0.0;
 struct LCD_Data dataLCD;
 
+// Mels Variables
 float mel_values[N_MEL];
 int hor_spectre_pos = 20;
 int vert_spectre_pos = 319;
-// Mels Variables
+float frequency_analysis[3];
 
 /* USER CODE END PV */
 
@@ -176,12 +187,11 @@ void drawAngle() {
 
 // Dessiner le spectrogramme de test
 void drawSpectre() {
-	int pas = (MAX_MEL-MIN_MEL)/4;
 	for (int i = 0; i < N_MEL; i++) {
 		uint16_t color = BLACK;
-		if (mel_values[i] < (MIN_MEL+pas)) color = BLACK;
-		else if (mel_values[i] < (MIN_MEL+2*pas) && mel_values[i] >= (MIN_MEL+pas)) color = BLUE;
-		else if (mel_values[i] < (MIN_MEL+3*pas) && mel_values[i] >= (MIN_MEL+2*pas)) color = YELLOW;
+		if (mel_values[i] < (LEVEL_1)) color = BLACK;
+		else if (mel_values[i] < (LEVEL_2) && mel_values[i] >= (LEVEL_1)) color = BLUE;
+		else if (mel_values[i] < (LEVEL_3) && mel_values[i] >= (LEVEL_2)) color = YELLOW;
 		else color = RED;
 		LCD_fillRect(hor_spectre_pos, (vert_spectre_pos - 2*i),2,2, color);
 		//LCD_drawPixel(hor_spectre_pos, (vert_spectre_pos - i), color);
@@ -197,8 +207,23 @@ void drawSpectre() {
 void detectVoice(void) {
 	float average;
 	arm_mean_f32(mel_values, N_MEL, &average);
-	if (average >= VOICE_LEVEL) flag_voice = 1;
-	else flag_voice = 0;
+	if (average >= VOICE_LEVEL && begin_word == 0) {begin_word = 1; end_count = -1;}
+	else if (average < VOICE_LEVEL && begin_word == 1) {end_count = 200; begin_word = 0;}
+}
+
+void analyzeFrequencies(void) {
+	float temp;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 10; j++) {
+			temp += mel_values[j + i*10];
+		}
+		temp /= 10;
+		frequency_analysis[i] += temp;
+	}
+}
+
+void wordAnalysis(void) {
+	
 }
 
 int main(void)
@@ -250,20 +275,29 @@ int main(void)
   {
     
 		// To update LCD
-		if (flag_update_lcd == 1) {
-			if (flag_voice == 1) {
-				distance = pulse_width/58.0;
+		if (end_word == 1) {
+				wordAnalysis();
 				LCD_setCursor(0,0);
 				char buf[80];
-				sprintf(buf, "%4.2f\r\n %4.2f\r\n", distance, angle);
-				//printf(buf);
+				sprintf(buf, "%yes\r\n");
 				LCD_printf(buf);
-				drawAngle();
-				prev_angle = angle;
-			}
-			flag_update_lcd = 0;
+				end_word = 0;
+				HAL_Delay(3000);
 		}
 		
+		if (flag_update_lcd == 1 && end_count == -1) {
+			// Show angle
+			distance = pulse_width/58.0;
+			LCD_setCursor(0,0);
+			char buf[80];
+			sprintf(buf, "no\r\n%4.2f\r\n%4.2f\r\n\r\n", distance, angle);
+			//printf(buf);
+			LCD_printf(buf);
+			drawAngle();
+			prev_angle = angle;
+			flag_update_lcd = 0;
+		}
+					
 		if (update_spectre == 1) {
 			drawSpectre();
 			detectVoice();
@@ -272,7 +306,7 @@ int main(void)
 		//
 		
 		// Once ADC is done
-		if (adc_done == 1) {
+		if (adc_done_left == 1 && adc_done_right == 1) {
 			// Convert the output
 			convIntFloat(input_tab_left_inv, input_tab_left_f);
 			convIntFloat(input_tab_right_inv, input_tab_right_f);
@@ -293,7 +327,8 @@ int main(void)
 			// Find Mel Coefficients
 			compute_log_mel_coefficients(input_tab_left_f, mel_values);
 			
-			adc_done = 0;
+			adc_done_left = 0;
+			adc_done_right = 0;
 		}
 		//
 		
@@ -366,10 +401,14 @@ void HAL_SYSTICK_Callback() {
 		local_time = 0;
 		flag_update_lcd = 1;
 	}
-	if (local_time_spectre >= 100) {
+	if (local_time_spectre >= 10) {
 		update_spectre = 1;
 		local_time_spectre = 0;
 	}
+	
+	if (end_count == 0) end_word = 1;
+	if (end_count > -1) end_count--;
+	
 	local_time++;
 	local_time_spectre++;
 }
@@ -403,7 +442,11 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 			input_tab_left = tab_left_1;
 			input_tab_left_inv = tab_left_2;
 		}
+		HAL_ADC_Start_DMA(&hadc1, input_tab_left, TABLE_LENGTH);
 		
+		adc_done_left = 1;
+	}
+	if (hadc == &hadc2) {
 		if (input_tab_right == tab_right_1) {
 			input_tab_right = tab_right_2;
 			input_tab_right_inv = tab_right_1;
@@ -412,11 +455,9 @@ void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc) {
 			input_tab_right = tab_right_1;
 			input_tab_right_inv = tab_right_2;
 		}
-		
-		HAL_ADC_Start_DMA(&hadc1, input_tab_left, TABLE_LENGTH);
 		HAL_ADC_Start_DMA(&hadc2, input_tab_right, TABLE_LENGTH);
 		
-		adc_done = 1;
+		adc_done_right = 1;
 	}
 }
 //

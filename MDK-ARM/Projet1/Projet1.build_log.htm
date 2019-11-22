@@ -5,7 +5,7 @@
 <h2>Tool Versions:</h2>
 IDE-Version: µVision V5.28.0.0
 Copyright (C) 2019 ARM Ltd and ARM Germany GmbH. All rights reserved.
-License Information: Gabriel Berestovoy Polytechnique Montréal Flex license: MDK Professional 5.28 (Flex) (mdk_pro) Operation stops: 18 Feb 2020
+License Information: Gabriel Berestovoy Polytechnique Montréal Flex license: MDK Professional 5.28 (Flex) (mdk_pro) Operation stops: 28 Oct 2020
  
 Tool Versions:
 Toolchain:       MDK Professional 5.28 (Flex)  Version: 5.28.0.0
@@ -32,13 +32,15 @@ compiling main.c...
     #define __PKHBT(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0x0000FFFF) | \
 ../Inc/arm_math.h(647): warning:  #47-D: incompatible redefinition of macro "__PKHTB"  (declared at line 855 of "../Drivers/CMSIS/Include/cmsis_armcc.h")
     #define __PKHTB(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0xFFFF0000) | \
-../Src/main.c(200): warning:  #1035-D: single-precision operand implicitly converted to double-precision
-  	if (average >= VOICE_LEVEL) flag_voice = 1;
-../Src/main.c: 3 warnings, 0 errors
+../Src/main.c(210): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  	if (average >= VOICE_LEVEL && begin_word == 0) {begin_word = 1; end_count = -1;}
+../Src/main.c(211): warning:  #1035-D: single-precision operand implicitly converted to double-precision
+  	else if (average < VOICE_LEVEL && begin_word == 1) {end_count = 200; begin_word = 0;}
+../Src/main.c: 4 warnings, 0 errors
 linking...
-Program Size: Code=38008 RO-data=89488 RW-data=140 ZI-data=14188  
+Program Size: Code=38072 RO-data=89488 RW-data=152 ZI-data=14200  
 FromELF: creating hex file...
-"Projet1\Projet1.axf" - 0 Error(s), 3 Warning(s).
+"Projet1\Projet1.axf" - 0 Error(s), 4 Warning(s).
 
 <h2>Software Packages used:</h2>
 
@@ -65,9 +67,9 @@ Package Vendor: Keil
    * Component: ARM::CMSIS:CORE:5.2.0
 
    * Component: ARM::CMSIS:DSP:Library:1.6.0
-      Include file:  CMSIS\DSP\Include\arm_math.h
       Library file:  CMSIS\DSP\Lib\ARM\arm_cortexM4lf_math.lib
-Build Time Elapsed:  00:00:04
+      Include file:  CMSIS\DSP\Include\arm_math.h
+Build Time Elapsed:  00:00:03
 </pre>
 </body>
 </html>
