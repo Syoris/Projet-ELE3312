@@ -642,10 +642,10 @@ compiler file in Core or Core_A would not make sense.
   /**
    * @brief definition to pack two 16 bit values.
    */
-  #define __PKHBT(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0x0000FFFF) | \
-                                      (((int)(ARG2) << ARG3) & (int)0xFFFF0000)  )
-  #define __PKHTB(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0xFFFF0000) | \
-                                      (((int)(ARG2) >> ARG3) & (int)0x0000FFFF)  )
+//  #define __PKHBT(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0x0000FFFF) | \
+//                                      (((int)(ARG2) << ARG3) & (int)0xFFFF0000)  )
+//  #define __PKHTB(ARG1, ARG2, ARG3) ( (((int)(ARG1) <<    0) & (int)0xFFFF0000) | \
+//                                      (((int)(ARG2) >> ARG3) & (int)0x0000FFFF)  )
 #endif
 
    /**

@@ -23,5 +23,6 @@ struct LCD_Data{
 void init_screen(void);
 void draw_cadran(float angle);
 void draw_screen(struct LCD_Data *printData);
+void draw_coches(void);
 
 #endif

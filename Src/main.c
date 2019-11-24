@@ -63,7 +63,7 @@
 #define LEVEL_2 8
 #define LEVEL_3 9
 #define LEVEL_4 10
-#define VOICE_LEVEL 7.5
+#define VOICE_LEVEL 7.5f
 
 
 
@@ -76,6 +76,8 @@ volatile unsigned int signal_polarity = 0;
 volatile int local_time = 0;
 volatile int local_time_spectre = 0;
 volatile int flag_update_lcd = 0;
+
+struct LCD_Data lcd_data;
 
 //Tableau des données en entrée
 uint32_t tab_left_1[TABLE_LENGTH];
@@ -107,8 +109,9 @@ struct LCD_Data dataLCD;
 
 // Mels Variables
 float mel_values[N_MEL];
-int hor_spectre_pos = 20;
-int vert_spectre_pos = 319;
+int hor_spectre_pos = 60;
+int hor_spectre_pos_start = 60;
+int vert_spectre_pos = 239;
 float frequency_analysis[5];
 
 // Données des mots
@@ -116,6 +119,7 @@ char mot[80] = {0};
 float six[5] = {116, 101, 70, 86, 122};
 float un[5] = {118, 116, 104, 76, 83};
 float loup[5] = {200,114,33,46,64};
+
 
 /* USER CODE END PV */
 
@@ -197,14 +201,12 @@ void drawSpectre() {
 		else if (mel_values[i] < (LEVEL_3) && mel_values[i] >= (LEVEL_2)) color = YELLOW;
 		else color = RED;
 		LCD_fillRect(hor_spectre_pos, (vert_spectre_pos - 2*i),2,2, color);
-		//LCD_drawPixel(hor_spectre_pos, (vert_spectre_pos - i), color);
 	}
 	
 	hor_spectre_pos += 2;
-	if (hor_spectre_pos == 220) { 
-		//HAL_Delay(500);
-		hor_spectre_pos = 20;
-		LCD_fillRect(20, (vert_spectre_pos - 79), 200, 80, BLACK);
+	if (hor_spectre_pos == hor_spectre_pos_start + 100*2) { 
+		hor_spectre_pos = hor_spectre_pos_start;
+		LCD_fillRect(hor_spectre_pos_start, (vert_spectre_pos - 79), 200, 80, BLACK);
 	}
 }
 //
@@ -239,7 +241,7 @@ int compareWordFreq(float* mot, float* resultat, float sensibilite) {
 }
 //
 
-int compareWord(float* resultat) {
+int compareWord(float* resultat, float* min_value) {
 	float erreur_un = 0;
 	for (int i = 0; i < 5; i++) {
 		erreur_un += (abs((int) (resultat[i] - un[i]))/un[i]);
@@ -262,12 +264,11 @@ int compareWord(float* resultat) {
 	printf("%4.2f\r\n", erreur_loup);
 	
 	float erreur[3] = {erreur_un, erreur_six, erreur_loup};
-	float min_value;
 	uint32_t min_index;
-	arm_min_f32(erreur, 3, &min_value, &min_index);
+	arm_min_f32(erreur, 3, min_value, &min_index);
 	return min_index;
 }
-//
+//s
 
 void wordAnalysis(void) {
 	float total = 0;
@@ -285,13 +286,16 @@ void wordAnalysis(void) {
 //	if (compareWordFreq(loup, frequency_analysis, 0.4) == 1) sprintf(mot, "loup");
 //	else if (compareWordFreq(un, frequency_analysis, 0.4) == 1) sprintf(mot, "un");
 //	else if (compareWordFreq(six, frequency_analysis, 0.4) == 1) sprintf(mot, "six");
-	int min_index = compareWord(frequency_analysis);
+	float min_value = 0;
+	int min_index = compareWord(frequency_analysis, &min_value);
 	printf("%i\r\n", min_index);
-	if (min_index == 0) sprintf(mot, "un");
-	else if (min_index == 1) sprintf(mot, "six");
-	else if (min_index == 2) sprintf(mot, "loup");
-	printf(mot);
-	printf("\r\n\r\n");
+	if (min_value <= 0.5) {
+		if (min_index == 0) sprintf(mot, "un      ");
+		else if (min_index == 1) sprintf(mot, "six      ");
+		else if (min_index == 2) sprintf(mot, "loup    ");
+		printf(mot);
+		printf("\r\n\r\n");
+	}
 	
 	for (int i = 4; i >= 0; i--) {
 		frequency_analysis[i] = 0;
@@ -347,28 +351,21 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-    
-		// To update LCD
 		if (end_word == 1) {
 				wordAnalysis();
-				LCD_setCursor(0,0);
-				char buf[80];
-				sprintf(buf, "%yes\r\n");
-				LCD_printf(buf);
 				end_word = 0;
 				HAL_Delay(1000);
 		}
 		//
 		
+		// To update LCD
 		if (flag_update_lcd == 1 && end_count == -1) {
-			// Show angle
 			distance = pulse_width/58.0;
-			LCD_setCursor(0,0);
-			char buf[80];
-			sprintf(buf, "no\r\n%4.2f\r\n%4.2f\r\n\r\n", distance, angle);
-			//printf(buf);
-			LCD_printf(buf);
-			drawAngle();
+			lcd_data.angle = angle;
+			lcd_data.distance = distance;
+			sprintf(lcd_data.mot, mot);
+			draw_screen(&lcd_data);
+			
 			prev_angle = angle;
 			flag_update_lcd = 0;
 		}
@@ -486,7 +483,7 @@ void HAL_SYSTICK_Callback() {
 	//
 	
 	if (local_time_spectre >= 10) {
-		update_spectre = 1;
+		//update_spectre = 1;
 		local_time_spectre = 0;
 	}
 	//
