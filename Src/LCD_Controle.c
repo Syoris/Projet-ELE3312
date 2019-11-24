@@ -2,7 +2,7 @@
 
  void init_screen(void){
  LCD_Begin();
- LCD_SetRotation(1);
+ LCD_SetRotation(0);
  LCD_FillScreen(BLACK);
  LCD_SetTextSize(3);
 }

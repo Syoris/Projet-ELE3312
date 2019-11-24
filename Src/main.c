@@ -111,10 +111,12 @@ int hor_spectre_pos = 20;
 int vert_spectre_pos = 319;
 float frequency_analysis[5];
 
+// Données des mots
 char mot[80] = {0};
 float six[5] = {116, 101, 70, 86, 122};
 float un[5] = {118, 116, 104, 76, 83};
 float loup[5] = {200,114,33,46,64};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -205,6 +207,7 @@ void drawSpectre() {
 		LCD_fillRect(20, (vert_spectre_pos - 79), 200, 80, BLACK);
 	}
 }
+//
 
 void detectVoice(void) {
 	float average;
@@ -212,6 +215,7 @@ void detectVoice(void) {
 	if (average >= VOICE_LEVEL && begin_word == 0) {begin_word = 1; end_count = -1;}
 	else if (average < VOICE_LEVEL && begin_word == 1) {end_count = 100; begin_word = 0;}
 }
+//
 
 void analyzeFrequencies(void) {
 	float temp;
@@ -223,6 +227,7 @@ void analyzeFrequencies(void) {
 		frequency_analysis[i] += temp;
 	}
 }
+//
 
 int compareWordFreq(float* mot, float* resultat, float sensibilite) {
 	int compare_resultat = 0;
@@ -232,6 +237,7 @@ int compareWordFreq(float* mot, float* resultat, float sensibilite) {
 	if (compare_resultat == 5) return 1;
 	else return 0;
 }
+//
 
 int compareWord(float* resultat) {
 	float erreur_un = 0;
@@ -261,6 +267,7 @@ int compareWord(float* resultat) {
 	arm_min_f32(erreur, 3, &min_value, &min_index);
 	return min_index;
 }
+//
 
 void wordAnalysis(void) {
 	float total = 0;
@@ -290,7 +297,7 @@ void wordAnalysis(void) {
 		frequency_analysis[i] = 0;
 	}
 }
-
+//
 
 
 int main(void)
@@ -351,6 +358,7 @@ int main(void)
 				end_word = 0;
 				HAL_Delay(1000);
 		}
+		//
 		
 		if (flag_update_lcd == 1 && end_count == -1) {
 			// Show angle
@@ -364,7 +372,8 @@ int main(void)
 			prev_angle = angle;
 			flag_update_lcd = 0;
 		}
-					
+		//
+		
 		if (update_spectre == 1) {
 			drawSpectre();
 			detectVoice();
@@ -405,6 +414,7 @@ int main(void)
   }
   /* USER CODE END 3 */
 }
+//
 
 /**
   * @brief System Clock Configuration
@@ -463,16 +473,23 @@ PUTCHAR_PROTOTYPE {
 }
 //
 
+
+float test_table[] = {94, 71, 112, 31, 210};
+
 // Pour update LCD à la bonne fréquence
 void HAL_SYSTICK_Callback() {
+	
 	if (local_time >= 100) {
 		local_time = 0;
 		flag_update_lcd = 1;
 	}
+	//
+	
 	if (local_time_spectre >= 10) {
 		update_spectre = 1;
 		local_time_spectre = 0;
 	}
+	//
 	
 	if (end_count == 0) end_word = 1;
 	if (end_count > -1) end_count--;
