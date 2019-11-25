@@ -64,6 +64,7 @@
 #define LEVEL_3 9
 #define LEVEL_4 10
 #define VOICE_LEVEL 7.5f
+#define DIV_SPECT 40
 
 
 
@@ -112,15 +113,17 @@ float mel_values[N_MEL];
 int hor_spectre_pos = 60;
 int hor_spectre_pos_start = 60;
 int vert_spectre_pos = 239;
-float frequency_analysis[5];
+float frequency_analysis[DIV_SPECT];
 
 // Données des mots
+int time_word = 0;
 char mot[80] = {0};
-float six[5] = {116, 101, 70, 86, 122};
-float un[5] = {118, 116, 104, 76, 83};
-float loup[5] = {200,114,33,46,64};
-
-
+float six[DIV_SPECT + 1] = {1.5127020937499995, 2.2168797187500004, 3.10779271875, 3.8853669374999997, 4.46051140625, 5.448689437500001, 6.49694996875, 7.044134906249999, 7.5921431875, 8.016221218749997, 8.387597625000001, 8.754221468750002, 9.094792656249998, 9.389559499999999, 9.693969374999998, 10.003269718750001, 10.308712812499996, 10.623953937500001, 11.012703187500001, 11.449483937499998, 11.83894146875, 12.166017531249999, 12.498095374999998, 12.912473125000002, 13.47130403125, 13.901282156250002, 14.271057593750001, 14.685990875, 15.302507999999998, 16.063498843749997, 17.14578515625, 17.954113437500002, 18.665002625, 19.55965634375, 20.616072281250002, 21.742268531249998, 22.89044375, 24.062729562499992, 25.229444281250004, 26.523663749999994, 27.34375};
+float un[DIV_SPECT + 1] = {1.2001918333333335, 1.929320875, 2.749723166666666, 3.5230936666666666, 4.085839, 4.773302333333333, 5.468789791666667, 6.069352166666666, 6.720225791666667, 7.384090041666666, 8.04394475, 8.66216525, 9.233863000000001, 9.781386666666664, 10.354950083333332, 10.982444000000001, 11.600222708333334, 12.155137625, 12.692513666666665, 13.216339958333336, 13.674436333333334, 14.043144166666666, 14.404176416666665, 14.737287833333331, 15.096232375, 15.488047416666669, 15.932346833333332, 16.363946374999998, 16.756767624999995, 17.19934816666667, 17.961794083333334, 18.334240833333332, 18.676871333333334, 19.021702208333334, 19.331684250000002, 19.625170833333332, 19.969847875000003, 20.349309333333327, 20.748274041666665, 21.658474583333334, 23.708333333333332};
+float loup[DIV_SPECT + 1] = {200,114,33,46,64};
+float rhino[DIV_SPECT + 1] = {1.7755769583333334, 2.68404475, 3.6986032916666667, 4.62251625, 5.300537041666667, 6.107805750000001, 6.983207749999999, 7.655885624999997, 8.441144375, 9.137874583333334, 9.661186291666667, 10.172986916666668, 10.42269620833333, 10.61716879166667, 10.836847375, 11.073874708333333, 11.289989791666665, 11.463533458333332, 11.733283583333332, 12.077774916666668, 12.261115041666669, 12.397528000000001, 12.547400708333333, 12.749292750000002, 13.002304666666669, 13.232533666666669, 13.434371916666668, 13.670991416666668, 13.941641041666669, 14.651230875000001, 16.13379758333333, 16.941965833333335, 17.539330166666662, 18.403289791666666, 19.358835625000005, 20.19387766666667, 21.3245005, 22.644485208333332, 24.069168, 25.745784583333336,60};
+//float test[4000] = {0};
+//int index_test = 0;
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -221,11 +224,11 @@ void detectVoice(void) {
 
 void analyzeFrequencies(void) {
 	float temp;
-	for (int i = 0; i < 5; i++) {
-		for (int j = 0; j < 8; j++) {
-			if (mel_values[j+i*8] > VOICE_LEVEL) temp += mel_values[j + i*8];
+	for (int i = 0; i < DIV_SPECT; i++) {
+		for (int j = 0; j < N_MEL/DIV_SPECT; j++) {
+			if (mel_values[j+i*N_MEL/DIV_SPECT] > VOICE_LEVEL) temp += mel_values[j + i*N_MEL/DIV_SPECT];
 		}
-		temp /= 8;
+		temp /= (N_MEL/DIV_SPECT);
 		frequency_analysis[i] += temp;
 	}
 }
@@ -233,35 +236,49 @@ void analyzeFrequencies(void) {
 
 int compareWordFreq(float* mot, float* resultat, float sensibilite) {
 	int compare_resultat = 0;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < DIV_SPECT; i++) {
 		if ((resultat[i] < (mot[i]*(1+sensibilite)) && (resultat[i] > (mot[i]*(1-sensibilite))))) compare_resultat++;
 	}
-	if (compare_resultat == 5) return 1;
+	if (compare_resultat == DIV_SPECT) return 1;
 	else return 0;
 }
 //
 
 int compareWord(float* resultat, float* min_value) {
-	float erreur_un = 0;
-	for (int i = 0; i < 5; i++) {
+	float erreur_un = 0.0;
+	for (int i = 0; i < DIV_SPECT; i++) {
 		erreur_un += (abs((int) (resultat[i] - un[i]))/un[i]);
+		//printf("un\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - un[i]))/un[i]));
 	}
-	erreur_un /= 5;
+	erreur_un += (abs((int) (time_word - un[40]))/un[40]);
+	erreur_un /= (DIV_SPECT + 1);
 	printf("%4.2f\r\n", erreur_un);
 	
 	float erreur_six = 0;
-	for (int i = 0; i < 5; i++) {
+	for (int i = 0; i < DIV_SPECT; i++) {
 		erreur_six += (abs((int) (resultat[i] - six[i]))/six[i]);
+		//printf("%i:%f\r\n", i, (abs((int) (resultat[i] - six[i]))/six[i]));
 	}
-	erreur_six /= 5;
+	erreur_six += (abs((int) (time_word - six[40]))/six[40]);
+	erreur_six /= (DIV_SPECT + 1);
 	printf("%4.2f\r\n", erreur_six);
 	
-	float erreur_loup = 0;
-	for (int i = 0; i < 5; i++) {
-		erreur_loup += (abs((int) (resultat[i] - loup[i]))/loup[i]);
+	float erreur_loup = 1.0;
+//	for (int i = 0; i < DIV_SPECT; i++) {
+//		erreur_loup += (abs((int) (resultat[i] - loup[i]))/loup[i]);
+//		//printf("loup\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - loup[i]))/loup[i]));
+//	}
+//	erreur_loup += (abs((int) (time_word - loup[40]))/loup[40]);
+//	erreur_loup /= (DIV_SPECT + 1);
+	//printf("%4.2f\r\n", erreur_loup);
+	
+	float erreur_rhino = 0;
+	for (int i = 0; i < DIV_SPECT; i++) {
+		erreur_rhino += (abs((int) (resultat[i] - rhino[i]))/rhino[i]);
 	}
-	erreur_loup /= 5;
-	printf("%4.2f\r\n", erreur_loup);
+	erreur_rhino += (abs((int) (time_word - rhino[40]))/rhino[40]);
+	erreur_rhino /= (DIV_SPECT + 1);
+	printf("%4.2f\r\n", erreur_rhino);
 	
 	float erreur[3] = {erreur_un, erreur_six, erreur_loup};
 	uint32_t min_index;
@@ -272,34 +289,38 @@ int compareWord(float* resultat, float* min_value) {
 
 void wordAnalysis(void) {
 	float total = 0;
-	for (int i = 0; i < 5; i++) { total += frequency_analysis[i]; }
+	for (int i = 0; i < DIV_SPECT; i++) { total += frequency_analysis[i]; }
 	total /= 5;
-	
-	for (int i = 4; i >= 0; i--) {
-		frequency_analysis[i] = (int) frequency_analysis[i]/total*100;
+	printf("#");
+	for (int i = (DIV_SPECT - 1); i >= 0; i--) {
+		frequency_analysis[i] = (float) frequency_analysis[i]/total*100;
 		char buf[80]; 
-		sprintf(buf, "%i:%i\r\n", i, (int) frequency_analysis[i]); 
+		sprintf(buf, "%f, ", frequency_analysis[i]); 
 		printf(buf);
 	}
-	
+	printf("%i, ", time_word);
+	printf("\r\n");
 	sprintf(mot, "rip");
 //	if (compareWordFreq(loup, frequency_analysis, 0.4) == 1) sprintf(mot, "loup");
 //	else if (compareWordFreq(un, frequency_analysis, 0.4) == 1) sprintf(mot, "un");
 //	else if (compareWordFreq(six, frequency_analysis, 0.4) == 1) sprintf(mot, "six");
 	float min_value = 0;
 	int min_index = compareWord(frequency_analysis, &min_value);
-	printf("%i\r\n", min_index);
-	if (min_value <= 0.5) {
+	//printf("%i\r\n", min_index);
+	if (min_value <= 0.1) {
 		if (min_index == 0) sprintf(mot, "un      ");
 		else if (min_index == 1) sprintf(mot, "six      ");
 		else if (min_index == 2) sprintf(mot, "loup    ");
+		else if (min_index == 4) sprintf(mot, "rhino    ");
 		printf(mot);
 		printf("\r\n\r\n");
 	}
 	
-	for (int i = 4; i >= 0; i--) {
+	// Reinitialize word
+	for (int i = (DIV_SPECT - 1); i >= 0; i--) {
 		frequency_analysis[i] = 0;
 	}
+	time_word = 0;
 }
 //
 
@@ -374,7 +395,7 @@ int main(void)
 		if (update_spectre == 1) {
 			drawSpectre();
 			detectVoice();
-			if (begin_word == 1 || end_count != -1) analyzeFrequencies();
+			if (begin_word == 1 || end_count != -1) {analyzeFrequencies(); time_word++; }
 			update_spectre = 0;
 		}
 		//
@@ -470,9 +491,6 @@ PUTCHAR_PROTOTYPE {
 }
 //
 
-
-float test_table[] = {94, 71, 112, 31, 210};
-
 // Pour update LCD à la bonne fréquence
 void HAL_SYSTICK_Callback() {
 	
@@ -483,7 +501,7 @@ void HAL_SYSTICK_Callback() {
 	//
 	
 	if (local_time_spectre >= 10) {
-		//update_spectre = 1;
+		update_spectre = 1;
 		local_time_spectre = 0;
 	}
 	//
