@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 
 class SerialDataClass:
     def __init__(self):
+        self.to_connect = True
         self.word = ''
         self.file_path = ''
         self.ser = ''
@@ -17,6 +18,7 @@ class SerialDataClass:
             "computeAverage" : self.computeAverage,
             "showData" : self.showData,
             "cleanData" : self.cleanData,
+            "compareData" : self.compareData,
             "help" : self.print_help,
             "exit" : self.stop
         }
@@ -28,18 +30,27 @@ class SerialDataClass:
             av = sum(each_val) / len(each_val)
             print("\t-", each_key, " : ", av)
             avs.append(av)
+        
+        rev_table = avs[::-1]
 
-        print(avs)
+        print(rev_table[1::])
+        print("Temps : ", avs[-1])
 
     def showData(self):
         x = []
         y = []
+        colors = []
         for each_key, each_val in self.data_dict.items():
+            av = sum(each_val) / len(each_val)
             for val in each_val:
                 y.append(val)
                 x.append(each_key)
+                colors.append("blue")
+            y.append(av)
+            x.append(each_key)
+            colors.append("green")
 
-        plt.scatter(x, y)
+        plt.scatter(x, y, c = colors)
         plt.title('Data du mot : ' + self.word)
         plt.xlabel('Indice')
         plt.ylabel('Valeurs')
@@ -61,12 +72,90 @@ class SerialDataClass:
                         bad_index.append(idx)
 
         print("Index des mauvaises données : ", bad_index)
-        ans = input("Do you want to remove them? (y/n) : ")
-        if ans == 'y':
-            for each_key, each_val in self.data_dict.items(): 
-                for index in sorted(bad_index, reverse=True):
-                    del each_val[index]
- 
+
+        x = []
+        y = []
+        colors = []
+        for each_key, each_val in self.data_dict.items():
+            for idx, val in enumerate(each_val):
+                y.append(val)
+                x.append(each_key)
+                if idx in bad_index:
+                    colors.append("red")
+                else:
+                    colors.append("blue")
+
+        plt.scatter(x, y, c = colors)
+        plt.title('Data du mot : ' + self.word)
+        plt.xlabel('Indice')
+        plt.ylabel('Valeurs')
+        plt.show()
+
+        if len(bad_index) > 0:
+            ans = input("Do you want to remove them? (y/n) : ")
+            if ans == 'y':
+                for each_key, each_val in self.data_dict.items(): 
+                    for index in sorted(bad_index, reverse=True):
+                        del each_val[index]
+                self.saveData()
+        
+        else:
+            print("No bad data found")
+    
+    def compareData(self):
+        print("Comparing data ...")
+        x = []
+        y = []
+        colors = []
+        x_av = []
+        y_av = []
+        colors_av = []
+        for each_key, each_val in self.data_dict.items():
+            av = sum(each_val) / len(each_val)
+            y_av.append(av)
+            x_av.append(each_key)
+            colors_av.append("green")
+
+
+        self.ser.flushInput()
+        self.ser.flushOutput()
+        if self.word != '':
+            try:
+                while True:
+                    serialData = self.ser.readline().decode('utf-8')
+                    print(serialData)
+                    if serialData.startswith('#'):
+                        x_data = []
+                        y_data = []
+                        colors_data = []
+
+                        data = serialData.replace(' ', '')
+                        data = data.split(',')
+                        data[0] = data[0][1:-1]
+                        data[-1] = data[-1].rstrip(', \n\r')
+                        for idx, each_data in enumerate(data):
+                            if each_data is not '':
+                                y_data.append(float(each_data))
+                                x_data.append(idx)
+                                colors_data.append("blue")
+                        
+                        x = x_av + x_data
+                        y = y_av + y_data
+                        colors = colors_av + colors_data
+                        
+                        plt.scatter(x, y, c = colors)
+                        plt.title('Data du mot : ' + self.word)
+                        plt.xlabel('Indice')
+                        plt.ylabel('Valeurs')
+                        plt.show()
+                        self.ser.flushInput()
+                        self.ser.flushOutput()
+
+            except KeyboardInterrupt:
+                print("Interrupted")
+        else:
+            print("Set word first")
+
     # Set word
     def setWord(self, word_to_set):
         self.word = word_to_set
@@ -83,8 +172,8 @@ class SerialDataClass:
             try:
                 while True:
                     serialData = self.ser.readline().decode('utf-8')
-                    print(serialData)
                     if serialData.startswith('#'):
+                        print(serialData)
                         data = serialData.replace(' ', '')
                         data = data.split(',')
                         data[0] = data[0][1:-1]
@@ -93,6 +182,7 @@ class SerialDataClass:
                             each_vals.append(float(data[each_key]))
 
             except KeyboardInterrupt:
+                print("Interrupted")
                 self.saveData()
         else:
             print("Set word first")
@@ -156,7 +246,8 @@ class SerialDataClass:
 
 def main():
     serData = SerialDataClass()
-    # serData.connect()
+    if serData.to_connect:
+        serData.connect()
 
     while True:
         try:
