@@ -65,6 +65,10 @@
 #define LEVEL_4 10
 #define VOICE_LEVEL 7.5f
 #define DIV_SPECT 40
+#define HOR_DIV 5
+#define VER_DIV 4
+#define MOYENNE (50/HOR_DIV)/(40/VER_DIV)
+
 
 
 
@@ -73,14 +77,14 @@ volatile unsigned int pulse_width = 0;
 volatile unsigned int last_captured = 0;
 volatile unsigned int signal_polarity = 0;
 
-// Affichage de l'ï¿½cran
+// Affichage de l'écran
 volatile int local_time = 0;
 volatile int local_time_spectre = 0;
 volatile int flag_update_lcd = 0;
 
 struct LCD_Data lcd_data;
 
-//Tableau des donnï¿½es en entrï¿½e
+//Tableau des données en entrée
 uint32_t tab_left_1[TABLE_LENGTH];
 uint32_t tab_left_2[TABLE_LENGTH];
 uint32_t tab_right_1[TABLE_LENGTH];
@@ -93,7 +97,7 @@ uint32_t *input_tab_right_inv = tab_right_2;
 
 float input_tab_left_f[TABLE_LENGTH];
 float input_tab_right_f[TABLE_LENGTH];
-float correlate_tab[(2*TABLE_LENGTH) - 1];	//Tableau des valeurs correlï¿½es
+float correlate_tab[(2*TABLE_LENGTH) - 1];	//Tableau des valeurs correlées
 
 volatile int adc_done_left = 0;  //Lecture de l'adc
 volatile int adc_done_right = 0;
@@ -102,7 +106,7 @@ volatile int end_word = 0;
 volatile int end_count = -1;
 volatile int update_spectre = 0; //Dessin du spectre
 
-// Valeurs dï¿½terminï¿½es
+// Valeurs déterminées
 float angle = 0;	//Angle de la personne
 float prev_angle = 0;
 float distance = 0.0;
@@ -115,15 +119,27 @@ int hor_spectre_pos_start = 60;
 int vert_spectre_pos = 239;
 float frequency_analysis[DIV_SPECT];
 
-// Donnï¿½es des mots
+// Données des mots
 int time_word = 0;
 char mot[80] = {0};
 float six[DIV_SPECT + 1] = {1.5127020937499995, 2.2168797187500004, 3.10779271875, 3.8853669374999997, 4.46051140625, 5.448689437500001, 6.49694996875, 7.044134906249999, 7.5921431875, 8.016221218749997, 8.387597625000001, 8.754221468750002, 9.094792656249998, 9.389559499999999, 9.693969374999998, 10.003269718750001, 10.308712812499996, 10.623953937500001, 11.012703187500001, 11.449483937499998, 11.83894146875, 12.166017531249999, 12.498095374999998, 12.912473125000002, 13.47130403125, 13.901282156250002, 14.271057593750001, 14.685990875, 15.302507999999998, 16.063498843749997, 17.14578515625, 17.954113437500002, 18.665002625, 19.55965634375, 20.616072281250002, 21.742268531249998, 22.89044375, 24.062729562499992, 25.229444281250004, 26.523663749999994, 27.34375};
 float un[DIV_SPECT + 1] = {1.2001918333333335, 1.929320875, 2.749723166666666, 3.5230936666666666, 4.085839, 4.773302333333333, 5.468789791666667, 6.069352166666666, 6.720225791666667, 7.384090041666666, 8.04394475, 8.66216525, 9.233863000000001, 9.781386666666664, 10.354950083333332, 10.982444000000001, 11.600222708333334, 12.155137625, 12.692513666666665, 13.216339958333336, 13.674436333333334, 14.043144166666666, 14.404176416666665, 14.737287833333331, 15.096232375, 15.488047416666669, 15.932346833333332, 16.363946374999998, 16.756767624999995, 17.19934816666667, 17.961794083333334, 18.334240833333332, 18.676871333333334, 19.021702208333334, 19.331684250000002, 19.625170833333332, 19.969847875000003, 20.349309333333327, 20.748274041666665, 21.658474583333334, 23.708333333333332};
 float loup[DIV_SPECT + 1] = {200,114,33,46,64};
 float rhino[DIV_SPECT + 1] = {1.7755769583333334, 2.68404475, 3.6986032916666667, 4.62251625, 5.300537041666667, 6.107805750000001, 6.983207749999999, 7.655885624999997, 8.441144375, 9.137874583333334, 9.661186291666667, 10.172986916666668, 10.42269620833333, 10.61716879166667, 10.836847375, 11.073874708333333, 11.289989791666665, 11.463533458333332, 11.733283583333332, 12.077774916666668, 12.261115041666669, 12.397528000000001, 12.547400708333333, 12.749292750000002, 13.002304666666669, 13.232533666666669, 13.434371916666668, 13.670991416666668, 13.941641041666669, 14.651230875000001, 16.13379758333333, 16.941965833333335, 17.539330166666662, 18.403289791666666, 19.358835625000005, 20.19387766666667, 21.3245005, 22.644485208333332, 24.069168, 25.745784583333336,60};
-//float test[4000] = {0};
-//int index_test = 0;
+
+//float gateau[3] = {3,3,37};
+//float un[3] = {1,3,20};
+//float rhino[3] = {4,3, 60};
+//float ballon[3] = {2,3,30};
+
+//// TEST1
+//float signal_analysis[HOR_DIV][VER_DIV];
+//float signal_detect[HOR_DIV][VER_DIV];
+//int signal_index = 0;
+
+//// TEST2
+//float un2[100][40] = {0};
+
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
@@ -170,7 +186,7 @@ float maxDisplace(float* input_float) {
 }
 //
 
-// Convertit les tableaux d'entrï¿½es (int) en float
+// Convertit les tableaux d'entrées (int) en float
 void convIntFloat(uint32_t* input_int, float* input_float) {
 	for (int i = 0; i < TABLE_LENGTH; i++) {
 		input_float[i] = ((float) input_int[i]);
@@ -178,7 +194,25 @@ void convIntFloat(uint32_t* input_int, float* input_float) {
 }
 //
 
-// Enlï¿½ve la moyenne aux donnï¿½es
+void printSignal(void) {
+//	for (int i = 0; i < VER_DIV; i++) {
+//		for (int j = 0; j < HOR_DIV; j++) {
+//			printf("%3.2f ", signal_analysis[j][i]);
+//		}
+//		printf("\r\n");
+//	}
+}
+
+void printDetect(void) {
+//	for (int i = 0; i < VER_DIV; i++) {
+//		for (int j = 0; j < HOR_DIV; j++) {
+//			printf("%3.2f ", signal_detect[j][i]);
+//		}
+//		printf("\r\n");
+//	}
+}
+
+// Enlève la moyenne aux données
 void normalize(float* input_float) {
 	float average;
 	arm_mean_f32(input_float, TABLE_LENGTH, &average);
@@ -231,6 +265,17 @@ void analyzeFrequencies(void) {
 		temp /= (N_MEL/DIV_SPECT);
 		frequency_analysis[i] += temp;
 	}
+	
+	//Testing new
+//	for (int i = 0; i < N_MEL; i++) {
+//		if (mel_values[i]) signal_analysis[(signal_index/(50/HOR_DIV))][(i/(40/VER_DIV))] += mel_values[i];
+//		signal_test2[i + signal_index*10] = mel_values[i];
+//	}
+//	signal_index++;
+	
+	//Testing new
+	
+	
 }
 //
 
@@ -244,51 +289,79 @@ int compareWordFreq(float* mot, float* resultat, float sensibilite) {
 }
 //
 
+float correlation(float* resultat, float* mot) {
+	  float sum_X = 0; 
+	  float sum_Y = 0; 
+		float	sum_XY = 0; 
+    float squareSum_X = 0;
+		float squareSum_Y = 0; 
+  
+    for (int i = 0; i < DIV_SPECT; i++) 
+    { 
+        // sum of elements of array X. 
+        sum_X = sum_X + resultat[i]; 
+  
+        // sum of elements of array Y. 
+        sum_Y = sum_Y + mot[i]; 
+  
+        // sum of X[i] * Y[i]. 
+        sum_XY = sum_XY + resultat[i] * mot[i]; 
+  
+        // sum of square of array elements. 
+        squareSum_X = squareSum_X + resultat[i] * resultat[i]; 
+        squareSum_Y = squareSum_Y + mot[i] * mot[i]; 
+    } 
+  
+    // use formula for calculating correlation coefficient. 
+    float corr = (float)(DIV_SPECT*sum_XY-sum_X*sum_Y)/sqrt((DIV_SPECT*squareSum_X-sum_X*sum_X)*(DIV_SPECT*squareSum_Y-sum_Y*sum_Y)); 
+  
+    return corr; 
+}
 
-int compareWord(float* resultat, float* min_value) {
-	float erreur_un = 0.0;
-	for (int i = 0; i < DIV_SPECT; i++) {
-		erreur_un += (abs((int) (resultat[i] - un[i]))/un[i]);
-		//printf("un\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - un[i]))/un[i]));
-	}
+int compareWord(float* resultat, float* max_value) {
+	float erreur_un = correlation(resultat, un);
+//	for (int i = 0; i < DIV_SPECT; i++) {
+//		erreur_un += (abs((int) (resultat[i] - un[i]))/un[i]);
+//		//printf("un\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - un[i]))/un[i]));
+//	}
 	if ((abs((int) (time_word - un[40]))/un[40]) > 0.5)
-		erreur_un += (DIV_SPECT + 1);
-	erreur_un /= (DIV_SPECT + 1);
+		erreur_un -= 1;
+//	erreur_un /= (DIV_SPECT + 1);
 	printf("%4.2f\r\n", erreur_un);
 	
-	float erreur_six = 0;
-	for (int i = 0; i < DIV_SPECT; i++) {
-		erreur_six += (abs((int) (resultat[i] - six[i]))/six[i]);
-		//printf("%i:%f\r\n", i, (abs((int) (resultat[i] - six[i]))/six[i]));
-	}
-	if ((abs((int) (time_word - six[40]))/six[40]) > 0.5)
-		erreur_six += (DIV_SPECT + 1);
-	erreur_six /= (DIV_SPECT + 1);
+	float erreur_six = correlation(resultat, six);
+//	for (int i = 0; i < DIV_SPECT; i++) {
+//		erreur_six += (abs((int) (resultat[i] - six[i]))/six[i]);
+//		//printf("%i:%f\r\n", i, (abs((int) (resultat[i] - six[i]))/six[i]));
+//	}
+//	if ((abs((int) (time_word - six[40]))/six[40]) > 0.5)
+//		erreur_six += (DIV_SPECT + 1);
+//	erreur_six /= (DIV_SPECT + 1);
 	printf("%4.2f\r\n", erreur_six);
 	
-	float erreur_loup = 1.0;
-	for (int i = 0; i < DIV_SPECT; i++) {
-		erreur_loup += (abs((int) (resultat[i] - loup[i]))/loup[i]);
-		//printf("loup\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - loup[i]))/loup[i]));
-	}
+	float erreur_loup = correlation(resultat, loup);
+//	for (int i = 0; i < DIV_SPECT; i++) {
+//		erreur_loup += (abs((int) (resultat[i] - loup[i]))/loup[i]);
+//		//printf("loup\r\n%i:%f\r\n", i, (abs((int) (resultat[i] - loup[i]))/loup[i]));
+//	}
 	if ((abs((int) (time_word - loup[40]))/loup[40]) > 0.5)
-		erreur_loup += (DIV_SPECT + 1);
+		erreur_loup -= 1;
 	erreur_loup /= (DIV_SPECT + 1);
 	//printf("%4.2f\r\n", erreur_loup);
 	
-	float erreur_rhino = 0;
-	for (int i = 0; i < DIV_SPECT; i++) {
-		erreur_rhino += (abs((int) (resultat[i] - rhino[i]))/rhino[i]);
-	}
+	float erreur_rhino = correlation(resultat, rhino);
+//	for (int i = 0; i < DIV_SPECT; i++) {
+//		erreur_rhino += (abs((int) (resultat[i] - rhino[i]))/rhino[i]);
+//	}
 	if ((abs((int) (time_word - rhino[40]))/rhino[40]) > 0.5)
-		erreur_rhino += (DIV_SPECT + 1);
-	erreur_rhino /= (DIV_SPECT + 1);
+		erreur_rhino -= 1;
+//	erreur_rhino /= (DIV_SPECT + 1);
 	printf("%4.2f\r\n", erreur_rhino);
 	
 	float erreur[3] = {erreur_un, erreur_six, erreur_rhino};
-	uint32_t min_index;
-	arm_min_f32(erreur, 3, min_value, &min_index);
-	return min_index;
+	uint32_t max_index;
+	arm_max_f32(erreur, 3, max_value, &max_index);
+	return max_index;
 }
 //s
 
@@ -309,14 +382,14 @@ void wordAnalysis(void) {
 //	if (compareWordFreq(loup, frequency_analysis, 0.4) == 1) sprintf(mot, "loup");
 //	else if (compareWordFreq(un, frequency_analysis, 0.4) == 1) sprintf(mot, "un");
 //	else if (compareWordFreq(six, frequency_analysis, 0.4) == 1) sprintf(mot, "six");
-	float min_value = 0;
-	int min_index = compareWord(frequency_analysis, &min_value);
+	float max_value = 0;
+	int max_index = compareWord(frequency_analysis, &max_value);
 	//printf("%i\r\n", min_index);
-	if (min_value <= 0.1) {
-		if (min_index == 0) sprintf(mot, "un      ");
-		else if (min_index == 1) sprintf(mot, "six      ");
-		else if (min_index == 4) sprintf(mot, "loup    ");
-		else if (min_index == 2) sprintf(mot, "rhino    ");
+	if (max_value > 0.9) {
+		if (max_index == 0) sprintf(mot, "un      ");
+		else if (max_index == 1) sprintf(mot, "six      ");
+		else if (max_index == 4) sprintf(mot, "loup    ");
+		else if (max_index == 2) sprintf(mot, "rhino    ");
 		printf(mot);
 		printf("\r\n\r\n");
 	}
@@ -328,6 +401,48 @@ void wordAnalysis(void) {
 	time_word = 0;
 }
 //
+
+void wordAnalysisTest(void) {
+//	int max_index_x = 0;
+//	int max_index_y = 0;
+//	float max_value = 0.0;
+//	
+//	for (int i = 0; i < HOR_DIV; i++) {
+//		for (int j = 0; j < VER_DIV; j++) {
+//			signal_analysis[i][j] /= MOYENNE;
+//			if (signal_analysis[i][j] > max_value) {max_index_x = i; max_index_y = j; max_value = signal_analysis[i][j];}
+//		}
+//	}
+//	
+//	printf("max:%f\r\n", max_value);
+//	for (int i = 0; i < HOR_DIV; i++) {
+//		for (int j = 0; j < VER_DIV; j++) {
+//			signal_analysis[i][j] /= max_value;
+//			if (signal_analysis[i][j] > 0.8) signal_detect[i][j] = 1;
+//			else signal_detect[i][j] = 0;
+//		}
+//	}
+//	
+//	printSignal();
+//	printf("\r\n");
+//	printDetect();
+//	
+//	printf("(%i,%i,%i)\r\n", max_index_x, max_index_y, signal_index);
+//	if (max_index_x == un[0] && max_index_y == un[1] && signal_index <= un[2]*(1+0.1) && signal_index <= un[2]*(1+0.1)) printf("un\r\n");
+//	else if (max_index_x == rhino[0] && max_index_y == rhino[1] && signal_index <= rhino[2]*(1+0.1) && signal_index <= rhino[2]*(1+0.1)) printf("rhinoceros\r\n");
+//	else if (max_index_x == gateau[0] && max_index_y == gateau[1] && signal_index <= gateau[2]*(1+0.1) && signal_index <= gateau[2]*(1+0.1)) printf("gateau\r\n");
+//	else if (max_index_x == ballon[0] && max_index_y == ballon[1] && signal_index <= ballon[2]*(1+0.1) && signal_index <= ballon[2]*(1+0.1)) printf("ballon\r\n");
+//	else printf("rip\r\n");
+//	signal_index = 0;
+//	
+//	for (int i = 0; i < HOR_DIV; i++) {
+//		for (int j = 0; j < 4; j++) {
+//			signal_analysis[i][j] = 0;
+//			signal_detect[i][j] = 0;
+//		}
+//	}
+}
+
 
 
 int main(void)
@@ -400,7 +515,7 @@ int main(void)
 		if (update_spectre == 1) {
 			drawSpectre();
 			detectVoice();
-			if (begin_word == 1 || end_count != -1) {analyzeFrequencies(); time_word++; }
+			if (begin_word == 1 || end_count != -1) {analyzeFrequencies(); time_word++;}
 			update_spectre = 0;
 		}
 		//
@@ -415,7 +530,7 @@ int main(void)
 			normalize(input_tab_left_f);
 			normalize(input_tab_right_f);
 			
-			// Calcul de la corrï¿½lation
+			// Calcul de la corrélation
 			arm_correlate_f32(input_tab_left_f, TABLE_LENGTH, input_tab_right_f, TABLE_LENGTH, correlate_tab);
 			
 			// Find index of maximum
@@ -496,7 +611,7 @@ PUTCHAR_PROTOTYPE {
 }
 //
 
-// Pour update LCD ï¿½ la bonne frï¿½quence
+// Pour update LCD à la bonne fréquence
 void HAL_SYSTICK_Callback() {
 	
 	if (local_time >= 100) {
