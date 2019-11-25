@@ -9,24 +9,64 @@ class SerialDataClass:
         self.file_path = ''
         self.ser = ''
         self.data_dict = {}
+        self.n_data = 41
 
         self.commands = {
             "setWord" : self.setWord,
             "getData" : self.readSerialData,
             "computeAverage" : self.computeAverage,
             "showData" : self.showData,
-            "help" : self.print_help
+            "cleanData" : self.cleanData,
+            "help" : self.print_help,
+            "exit" : self.stop
         }
     
     def computeAverage(self):
         print("Les moyennes sont :")
+        avs = []
         for each_key, each_val in self.data_dict.items():
             av = sum(each_val) / len(each_val)
-            print("\t", each_key, av)
+            print("\t-", each_key, " : ", av)
+            avs.append(av)
+
+        print(avs)
 
     def showData(self):
-        pass
+        x = []
+        y = []
+        for each_key, each_val in self.data_dict.items():
+            for val in each_val:
+                y.append(val)
+                x.append(each_key)
 
+        plt.scatter(x, y)
+        plt.title('Data du mot : ' + self.word)
+        plt.xlabel('Indice')
+        plt.ylabel('Valeurs')
+        plt.show()
+
+    def cleanData(self):
+        bad_index = []
+        for each_key, each_val in self.data_dict.items():
+            average = np.mean(each_val)
+            std = np.std(each_val)
+
+            if each_key == 40:
+                print("40")
+
+            for idx, val in enumerate(each_val):
+                error = abs(val-average)
+                if error > 3*std:
+                    if idx not in bad_index:
+                        bad_index.append(idx)
+
+        print("Index des mauvaises données : ", bad_index)
+        ans = input("Do you want to remove them? (y/n) : ")
+        if ans == 'y':
+            for each_key, each_val in self.data_dict.items(): 
+                for index in sorted(bad_index, reverse=True):
+                    del each_val[index]
+ 
     # Set word
     def setWord(self, word_to_set):
         self.word = word_to_set
@@ -36,26 +76,29 @@ class SerialDataClass:
 
     # Read Serial data
     def readSerialData(self):
+        print("Reading data ...")
+        self.ser.flushInput()
+        self.ser.flushOutput()
         if self.word != '':
             try:
                 while True:
                     serialData = self.ser.readline().decode('utf-8')
+                    print(serialData)
                     if serialData.startswith('#'):
                         data = serialData.replace(' ', '')
                         data = data.split(',')
                         data[0] = data[0][1:-1]
-                        data[-1] = data[-1].rstrip('\n\r')
+                        data[-1] = data[-1].rstrip(', \n\r')
                         for each_key, each_vals in self.data_dict.items():
-                            each_vals.append(data[each_key])
+                            each_vals.append(float(data[each_key]))
 
             except KeyboardInterrupt:
-                print('Saving data...')
                 self.saveData()
         else:
             print("Set word first")
 
     def saveData(self):
-        ans = input("Save data? (y/n)")
+        ans = input("Save data? (y/n) : ")
         if ans is "y":
             np.save(self.file_path, self.data_dict)
             print("Data saved")
@@ -84,7 +127,7 @@ class SerialDataClass:
         print("Connecting...")
         while not port_open:
             try:
-                self.ser = serial.Serial("COM14", timeout=None, baudrate=115000, xonxoff=False, rtscts=False, dsrdtr=False)
+                self.ser = serial.Serial("COM18", timeout=None, baudrate=115000, xonxoff=False, rtscts=False, dsrdtr=False)
                 self.ser.flushInput()
                 self.ser.flushOutput()
                 port_open = True
@@ -99,8 +142,12 @@ class SerialDataClass:
             self.data_dict = np.load(self.file_path, allow_pickle=True).item()
             print("Data loaded")
         else:
-            self.data_dict = {0:[], 1:[], 2:[], 3:[], 4:[]}
+            for i in range(0, self.n_data):
+                self.data_dict[i] = []
             print("No data found, creating new set")
+    
+    def stop(self):
+        os._exit(0)
 
     def print_help(self):
         print("Possible commands :")
@@ -109,7 +156,7 @@ class SerialDataClass:
 
 def main():
     serData = SerialDataClass()
-    serData.connect()
+    # serData.connect()
 
     while True:
         try:
