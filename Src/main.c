@@ -36,6 +36,7 @@
 #include "stdio.h"
 #include "stdlib.h"
 #include "MCUFRIEND_kbv.h"
+#include <string.h>
 
 /* USER CODE END Includes */
 
@@ -500,9 +501,9 @@ int compareWord(float* resultat, float* max_value) {
 //	printf("mere\r\n%4.2f\r\n", erreur_gauche);
 //	printf("%4.2f\r\n", abs((int) (time_word - gauche[40]))/gauche[40]);
 	
-	float erreur[12] = {erreur_un, erreur_six, erreur_loup, erreur_deux, erreur_gauche, erreur_deux2, erreur_un2, erreur_loup2, erreur_six2, erreur_gauche2, erreur_droite, erreur_droite2};
+	float erreur[11] = {erreur_un, erreur_six, erreur_loup, erreur_deux, erreur_deux2, erreur_un2, erreur_loup2, erreur_six2, erreur_gauche2, erreur_droite, erreur_droite2};
 	uint32_t max_index;
-	arm_max_f32(erreur, 12, max_value, &max_index);
+	arm_max_f32(erreur, 11, max_value, &max_index);
 	return max_index;
 }
 //s
@@ -511,35 +512,35 @@ void wordAnalysis(void) {
 	float total = 0;
 	for (int i = 0; i < DIV_SPECT; i++) { total += frequency_analysis[i]; }
 	total /= 5;
-	printf("#");
+//	printf("#");
 	for (int i = (DIV_SPECT - 1); i >= 0; i--) {
 		frequency_analysis[i] = (float) frequency_analysis[i]/total*100;
-		char buf[80]; 
-		sprintf(buf, "%f, ", frequency_analysis[i]); 
-		printf(buf);
+//		char buf[80]; 
+//		sprintf(buf, "%f, ", frequency_analysis[i]); 
+//		printf(buf);
 	}
-	printf("%i, ", time_word);
-	printf("\r\n");
-	sprintf(mot, "            ");
+//	printf("%i, ", time_word);
+//	printf("\r\n");
+//	sprintf(mot, "            ");
 //	if (compareWordFreq(loup, frequency_analysis, 0.4) == 1) sprintf(mot, "loup");
 //	else if (compareWordFreq(un, frequency_analysis, 0.4) == 1) sprintf(mot, "un");
 //	else if (compareWordFreq(six, frequency_analysis, 0.4) == 1) sprintf(mot, "six");
 	float max_value = 0;
 	int max_index = compareWord(frequency_analysis, &max_value);
-	printf("%i\r\n", max_index);
+//	printf("%i\r\n", max_index);
 	if (max_value >= 0.96) {
 		if (max_index == 0) sprintf(mot, "un      ");
 		else if (max_index == 1) sprintf(mot, "six      ");
 		else if (max_index == 2) sprintf(mot, "loup    ");
 		else if (max_index == 3) sprintf(mot, "deux    ");
-		else if (max_index == 4) sprintf(mot, "gauche    ");
-		else if (max_index == 5) sprintf(mot, "deux    ");
-		else if (max_index == 6) sprintf(mot, "un      ");
-		else if (max_index == 7) sprintf(mot, "loup    ");
-		else if (max_index == 8) sprintf(mot, "six      ");
-		else if (max_index == 9) sprintf(mot, "gauche    ");
-		else if (max_index == 10) sprintf(mot, "droite      ");
-		else if (max_index == 11) sprintf(mot, "droite    ");
+		//else if (max_index == 4) sprintf(mot, "gauche1    ");
+		else if (max_index == 4) sprintf(mot, "deux    ");
+		else if (max_index == 5) sprintf(mot, "un      ");
+		else if (max_index == 6) sprintf(mot, "loup    ");
+		else if (max_index == 7) sprintf(mot, "six      ");
+		else if (max_index == 8) sprintf(mot, "gauche2    ");
+		else if (max_index == 9) sprintf(mot, "droite      ");
+		else if (max_index == 10) sprintf(mot, "droite    ");
 		else sprintf(mot, "                ");
 		//printf(mot);
 		//printf("\r\n\r\n");
@@ -648,9 +649,11 @@ int main(void)
 		if (end_word == 1) {
 				wordAnalysis();
 				end_word = 0;
-				sprintf(lcd_data.mot, mot);
-				draw_screen(&lcd_data);
-				HAL_Delay(1000);
+				if (strncmp(mot,"                ", 1) != 0) {
+					sprintf(lcd_data.mot, mot);
+					draw_screen(&lcd_data);
+					HAL_Delay(3000);
+				}
 		}
 		//
 		
