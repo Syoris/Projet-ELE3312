@@ -10,7 +10,7 @@ class SerialDataClass:
         self.file_path = ''
         self.ser = ''
         self.data_dict = {}
-        self.n_data = 41
+        self.n_data = 201
 
         self.commands = {
             "setWord" : self.setWord,
@@ -28,7 +28,7 @@ class SerialDataClass:
         avs = []
         for each_key, each_val in self.data_dict.items():
             av = sum(each_val) / len(each_val)
-            print("\t-", each_key, " : ", av)
+            # print("\t-", each_key, " : ", av)
             avs.append(av)
         
         rev_table = avs[::-1]
@@ -37,24 +37,56 @@ class SerialDataClass:
         print("Temps : ", avs[-1])
 
     def showData(self):
+        # To show and clean the data
+
+        # Find bad data
+        bad_index = []
+        for each_key, each_val in self.data_dict.items():
+            average = np.mean(each_val)
+            std = np.std(each_val)
+
+            for idx, val in enumerate(each_val):
+                error = abs(val-average)
+                if error > 3*std:
+                    if idx not in bad_index:
+                        bad_index.append(idx)
+
+        # Create plot lists
         x = []
         y = []
         colors = []
         for each_key, each_val in self.data_dict.items():
             av = sum(each_val) / len(each_val)
-            for val in each_val:
+            for idx, val in enumerate(each_val):
                 y.append(val)
                 x.append(each_key)
-                colors.append("blue")
+                if idx in bad_index:
+                    colors.append("red")
+                else:
+                    colors.append("blue")
             y.append(av)
             x.append(each_key)
             colors.append("green")
 
+        # Plot
         plt.scatter(x, y, c = colors)
         plt.title('Data du mot : ' + self.word)
         plt.xlabel('Indice')
         plt.ylabel('Valeurs')
         plt.show()
+
+        # Process
+        if len(bad_index) > 0:
+            print("Bad data found at index : ", bad_index)
+            ans = input("Do you want to remove them? (y/n) : ")
+            if ans == 'y':
+                for each_key, each_val in self.data_dict.items(): 
+                    for index in sorted(bad_index, reverse=True):
+                        del each_val[index]
+                self.saveData()
+        
+        else:
+            print("No bad data found")
 
     def cleanData(self):
         bad_index = []
@@ -168,11 +200,14 @@ class SerialDataClass:
         print("Reading data ...")
         self.ser.flushInput()
         self.ser.flushOutput()
+        data_count = 1
         if self.word != '':
             try:
                 while True:
                     serialData = self.ser.readline().decode('utf-8')
                     if serialData.startswith('#'):
+                        print("Data #", data_count)
+                        data_count += 1
                         print(serialData)
                         data = serialData.replace(' ', '')
                         data = data.split(',')
@@ -180,6 +215,7 @@ class SerialDataClass:
                         data[-1] = data[-1].rstrip(', \n\r')
                         for each_key, each_vals in self.data_dict.items():
                             each_vals.append(float(data[each_key]))
+                        # print("Data #", data_count, end = '')
 
             except KeyboardInterrupt:
                 print("Interrupted")
